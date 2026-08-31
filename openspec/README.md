@@ -17,10 +17,17 @@ Project root: `/projects/personal/zarra-defenders/`
 ## Conventions
 
 - Modular structure under `src/{engine,game,content,levels}/` with the registry pattern from `content/models/{trees,enemies,props,buildings}/`
-- Total source-file layout: `index.html`, `src/main.js`, 4 engine modules (`audio`, `input`, `loop`, `render`), 7+ game modules (`ammo`, `bosses`, `data-screen`, `dispatcher`, `enemies`, `hit-feedback`, `hud`, `over`, `pause`, `pedagogy`, `powerups`, `scoring`, `state`, `waves`), 1 `src/content/data.js`, content registry, 6 level modules (`levels/registry.js` + 5 `nivel*.js`)
+- Total source-file layout (53 files under the project root):
+  - `index.html` (1) + `src/styles.css` (1) + `src/main.js` (1) = 3 root entry files
+  - `src/engine/` (7 modules): `audio.js`, `dom.js` (NEW — A8 `__zarra` debug gate), `input.js`, `loop.js`, `model-transform.js`, `render.js`, `scene.js`
+  - `src/game/` (14 modules): `ammo.js`, `bosses.js`, `data-screen.js`, `dispatcher.js` (NEW — event bus per design D2), `enemies.js`, `hit-feedback.js`, `hud.js`, `over.js`, `pause.js`, `pedagogy.js`, `powerups.js`, `scoring.js`, `state.js`, `waves.js`
+  - `src/content/data.js` (1) + `src/content/models/` (22 files = 1 `index.js` registry + 21 pure factories: 3 trees, 11 enemies + 1 dedicated `planta_treco` boss, 3 props, 3 buildings)
+  - `src/levels/` (6 files): `registry.js` + `nivel{1_hoyas_caballero,2_hoz_zarra,3_sierra_hunde_palomera,4_casco_ayora,5_acuifero}.js`
+  - `scripts/verify.sh` (1) + `MANUAL_PLAYTHROUGH.md` (1)
 - Principle: "no logic in main.js, each capability in its own file" (`modularity: strict`)
 - All copy and code comments default to English (artifact language)
 - Castilian Spanish for user-facing game copy, exclusively under `src/content/data.js` (per A2 + content-strings spec §Single STRINGS Object)
+- ASCII-only transliteration in `src/content/models/` comments per A9 (e.g., `rio`, `movil`, `Acuifero`, `desactivacion`, `tuberia`)
 
 ## Persistence mode
 

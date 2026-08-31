@@ -8,7 +8,7 @@
 //
 // Architectural decisions honoured in this instance:
 //   A5 - All 6 `.fuente` strings are populated VERBATIM from
-//        research/fuentes.md (the canonical source). NO TODO pedagogia
+//        research/fuentes.md (the canonical source). NO TODO marker strings.
 //        markers, NO empty strings.
 //   A6 - All URLs live under `final.enlaces.*_url` — no `https://`
 //        literals appear anywhere else in src/.

@@ -55,7 +55,7 @@ Forecast: 3680–5280 lines (54 new + 1 modified); single-pr size:exception reco
 
 ## Phase 5: Verification
 
-- [ ] 5.1 `openspec/README.md` line 19 — "16-file modular" → real ~54-file layout (R6).
-- [ ] 5.2 `MANUAL_PLAYTHROUGH.md` — REQ-15 acceptance script.
-- [ ] 5.3 `scripts/verify.sh` — STRINGS > 0; Spanish isolation; catalog == 22; ≤ 2 MB; A5 fuentes non-empty; A6 zero `https://` outside `data.js`; A7 all 5 bosses `lifecycle.*desactivacion`; A8 zero `console.*` outside `engine/dom.js`.
-- [ ] 5.4 `bash scripts/verify.sh` → 8 PASS / 0 WARN.
+- [x] 5.1 `openspec/README.md` line 19 — "16-file modular" → real ~54-file layout (R6).
+- [x] 5.2 `MANUAL_PLAYTHROUGH.md` — REQ-15 acceptance script.
+- [x] 5.3 `scripts/verify.sh` — STRINGS > 0; Spanish isolation; catalog == 22; ≤ 2 MB; A5 fuentes non-empty; A6 zero `https://` outside `data.js`; A7 all 5 bosses `lifecycle.*desactivacion`; A8 zero `console.*` outside `engine/dom.js`.
+- [x] 5.4 `bash scripts/verify.sh` → 8 PASS / 0 WARN.

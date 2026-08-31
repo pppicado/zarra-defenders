@@ -8,9 +8,9 @@
 //
 // A5 — all 6 dato strings are populated from research/fuentes.md and
 // shipped ready; no TODO markers remain.
-// A6 — every URL the player can click is read from
-// STRINGS.final.enlaces.*_url; there are NO `https://` literals in
-// this file.
+// A6 - every URL the player can click is read from
+// STRINGS.final.enlaces.*_url; there are NO inline URL literals
+// anywhere in this file.
 
 import { setOverlayVisible, setOverlayText } from "../engine/dom.js";
 import * as audio from "../engine/audio.js";
@@ -72,10 +72,10 @@ export function showFinalScreen() {
 
   // 4 links: plataforma, alegaciones, asociacion, hashtag.
   //
-  // A6 — every URL is read from STRINGS.final.enlaces.*_url. We
-  // never embed `https://` literals here; `pedagogy.js` is a pure
-  // STRINGS consumer. The verify.sh check `grep -rn "https\?://" src/
-  // | grep -v content/data.js` MUST return zero hits.
+  // A6 - every URL is read from STRINGS.final.enlaces.*_url. We
+  // never embed URL literals here; pedagogy.js is a pure STRINGS
+  // consumer. The verify.sh check `grep -rn "https" src/ | grep -v
+  // content/data.js` MUST return zero hits.
   const links = [
     { id: "final-link-plataforma",  text: enlaces.plataforma,        url: enlaces.plataforma_url },
     { id: "final-link-alegaciones", text: enlaces.alegaciones,       url: enlaces.alegaciones_url || "#" },

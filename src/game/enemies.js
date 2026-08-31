@@ -202,11 +202,11 @@ function destroyEnemy(enemyGroup) {
 }
 
 /**
- * A7 — desactivacion lifecycle. Per boss-system spec §Boss
- * Desactivación - All 5 Bosses: the boss halts its attacks, the screen
- * applies desaturation + motion halt. NO explosion, NO fire, NO debris,
- * NO particles. The pedagogical framing holds for every boss
- * uniformly.
+ * A7 - desactivacion lifecycle. Per boss-system spec §Boss
+ * Desactivacion - All 5 Bosses: the boss halts its attacks, the
+ * screen applies desaturation + motion halt. NO explosion, NO fire,
+ * NO debris, NO particles. The pedagogical framing holds for every
+ * boss uniformly.
  *
  * Steps:
  *  1. Mark group.userData.lifecycleHalt = true so the per-frame

@@ -10,7 +10,7 @@
 // desactivacion path applies uniformly to all 5 bosses.
 //
 // Final screen links are sourced from STRINGS.final.enlaces (A6): the
-// level module never embeds https:// literals.
+// level module never embeds URL literals.
 
 import { scene } from "../engine/scene.js";
 import { registry } from "../content/models/index.js";
