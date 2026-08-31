@@ -7,5 +7,6 @@ desktop.ini
 *.swo
 *~
 .engram/
+.atl/
 *.log
 __pycache__/
