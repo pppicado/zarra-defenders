@@ -128,6 +128,18 @@ macrovertedero:
 
 Hashtag propuesto: `#NoAlMacrovertederoDeZarra`.
 
+## Recursos para la comunidad
+
+QR imprimible para folletos, pancartas y eventos vecinales (apunta a
+`https://pppicado.github.io/zarra-defenders/`):
+
+- `assets/qr-zarra-defenders.svg` — vectorial, infinitely escalable
+  (ideal para Roll-ups, A3, A2).
+- `assets/qr-zarra-defenders.png` — 600×600 px (ideal para folletos
+  A5/A4, pegatinas, tarjetas).
+
+Regenerar con cualquier encoder QR estándar si cambia la URL.
+
 ---
 
 ## Licencia
