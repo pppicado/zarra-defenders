@@ -1,0 +1,42 @@
+project:
+  name: valle-ayora-defensores-del-territorio
+  type: web-game
+  root: /projects/personal/zarra-defenders/
+
+stack:
+  runtime: browser-static
+  engine: three.js
+  audio: web-audio-api
+  input: pointer-lock-api
+  build: none
+  package_manager: none
+  distribution: python3-http.server
+
+testing:
+  strict_tdd: false
+  test_runner: none
+  test_command: none
+  test_layers:
+    unit: unavailable
+    integration: unavailable
+    e2e: unavailable
+  coverage: unavailable
+  linter: none
+  typechecker: none
+  formatter: none
+  notes: |
+    Vanilla JS web game with no test runner installed or planned for v1.
+    Verification will be manual playthrough + structural readback.
+
+persistence:
+  mode: both       # OpenSpec files + Engram memory
+  engram_project: zarra-defenders
+  openspec_dir: openspec/
+
+conventions:
+  module_layout: src/{engine,game,content,levels}/
+  modularity: strict   # each capability in its own file, no logic in main.js
+  artifact_language: en
+  user_facing_language: es-ES
+
+plan_reference: /projects/personal/zarra-defenders/plan.md
