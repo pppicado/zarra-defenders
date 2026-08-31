@@ -23,35 +23,35 @@ Forecast: 3680–5280 lines (54 new + 1 modified); single-pr size:exception reco
 
 ## Phase 2: Content + Models
 
-- [ ] 2.1 `src/content/data.js` — all STRINGS keys; `datos.{nivel{1-5},final}.{texto,fuente}`; `final.enlaces.*` (A6).
-- [ ] 2.2 `src/content/models/index.js` — `get/keys()`; throws on unknown.
-- [ ] 2.3 `models/trees/{encina,pino,almendro}.js` — pure factories; ASCII (A9).
-- [ ] 2.4 `models/enemies/{camion_treco,bidon_lixiviado,bolsa_plastico,valla_publicitaria}.js` hp=1; valla drops=[].
-- [ ] 2.5 `models/enemies/{plataforma_solar,tubo_lixiviado,dron_fumigador,sello_burocratico}.js` hp 3/3/3/5; dron/sello drops=[alegacion].
-- [ ] 2.6 `models/enemies/{topadora,incineradora,trailer}.js` hp 5/10/8; `lifecycle='desactivacion'` (A7).
-- [ ] 2.7 `models/enemies/planta_treco.js` — DEDICATED; `lifecycle='desactivacion'` always (A7); hp=30.
-- [ ] 2.8 `models/props/{valla,roca,cartel}.js` + `buildings/{casa_ayora,castillo_cofrentes,torre_central}.js`.
+- [x] 2.1 `src/content/data.js` — all STRINGS keys; `datos.{nivel{1-5},final}.{texto,fuente}`; `final.enlaces.*` (A6).
+- [x] 2.2 `src/content/models/index.js` — `get/keys()`; throws on unknown.
+- [x] 2.3 `models/trees/{encina,pino,almendro}.js` — pure factories; ASCII (A9).
+- [x] 2.4 `models/enemies/{camion_treco,bidon_lixiviado,bolsa_plastico,valla_publicitaria}.js` hp=1; valla drops=[].
+- [x] 2.5 `models/enemies/{plataforma_solar,tubo_lixiviado,dron_fumigador,sello_burocratico}.js` hp 3/3/3/5; dron/sello drops=[alegacion].
+- [x] 2.6 `models/enemies/{topadora,incineradora,trailer}.js` hp 5/10/8; `lifecycle='desactivacion'` (A7).
+- [x] 2.7 `models/enemies/planta_treco.js` — DEDICATED; `lifecycle='desactivacion'` always (A7); hp=30.
+- [x] 2.8 `models/props/{valla,roca,cartel}.js` + `buildings/{casa_ayora,castillo_cofrentes,torre_central}.js`.
 
 ## Phase 3: Game Modules
 
-- [ ] 3.1 `src/game/state.js` — `{score, lives, level, inMenu, paused, gameOver}`.
-- [ ] 3.2 `src/game/enemies.js` — spawn + raycast + 3-cap + uniform `destroyEnemy()` via `desactivar(group)` (A7).
-- [ ] 3.3 `src/game/ammo.js` — 12-round mag, 1.2 s auto-reload, `R` manual.
-- [ ] 3.4 `src/game/scoring.js` — base pts from STRINGS; combo ×5; 2 s decay.
-- [ ] 3.5 `src/game/hit-feedback.js` — flash 80 ms; boss shake amp=combo; emits via `__zarra` (A8).
-- [ ] 3.6 `src/game/waves.js` — REST/SPAWNING/ACTIVE/BOSS/TRANSITION FSM; 4-5 waves, ~30 s, 4 s rest, 3-cap.
-- [ ] 3.7 `src/game/bosses.js` — ENTRY/INVULNERABLE/VULNERABLE/SPECIAL_TELL/DESACTIVACION FSM; all 5 desaturate (A7).
-- [ ] 3.8 `src/game/powerups.js` — 6 effects: FIRMA/ALEGACIÓN/MANIFESTACIÓN/ALIANZA/DATO/HITO.
-- [ ] 3.9 `src/game/{pause,over,hud}.js` — overlays; session score preserved; NO `localStorage`.
-- [ ] 3.10 `src/game/{pedagogy,data-screen,dispatcher}.js` — dato + final 4 links (`final.enlaces.*` A6) + credits + bus.
+- [x] 3.1 `src/game/state.js` — `{score, lives, level, inMenu, paused, gameOver}`.
+- [x] 3.2 `src/game/enemies.js` — spawn + raycast + 3-cap + uniform `destroyEnemy()` via `desactivar(group)` (A7).
+- [x] 3.3 `src/game/ammo.js` — 12-round mag, 1.2 s auto-reload, `R` manual.
+- [x] 3.4 `src/game/scoring.js` — base pts from STRINGS; combo ×5; 2 s decay.
+- [x] 3.5 `src/game/hit-feedback.js` — flash 80 ms; boss shake amp=combo; emits via `__zarra` (A8).
+- [x] 3.6 `src/game/waves.js` — REST/SPAWNING/ACTIVE/BOSS/TRANSITION FSM; 4-5 waves, ~30 s, 4 s rest, 3-cap.
+- [x] 3.7 `src/game/bosses.js` — ENTRY/INVULNERABLE/VULNERABLE/SPECIAL_TELL/DESACTIVACION FSM; all 5 desaturate (A7).
+- [x] 3.8 `src/game/powerups.js` — 6 effects: FIRMA/ALEGACIÓN/MANIFESTACIÓN/ALIANZA/DATO/HITO.
+- [x] 3.9 `src/game/{pause,over,hud}.js` — overlays; session score preserved; NO `localStorage`.
+- [x] 3.10 `src/game/{pedagogy,data-screen,dispatcher}.js` — dato + final 4 links (`final.enlaces.*` A6) + credits + bus.
 
 ## Phase 4: Levels + Integration
 
-- [ ] 4.1 `src/levels/registry.js` — slug-based loader `start(n)`.
-- [ ] 4.2 `nivel{1_hoyas,2_hoz,3_sierra,4_casco}_*.js` — 4-5 waves + boss; desaturate (A7).
-- [ ] 4.3 `nivel5_acuifero.js` — 4 waves + `planta_treco`; desactivación → final screen.
-- [ ] 4.4 No `console.*` in `src/` (A8) — `grep "console\." src/ | grep -v engine/dom.js` → 0.
-- [ ] 4.5 Smoke — `python3 -m http.server 8765` → 200; first wave spawns.
+- [x] 4.1 `src/levels/registry.js` — slug-based loader `start(n)`.
+- [x] 4.2 `nivel{1_hoyas,2_hoz,3_sierra,4_casco}_*.js` — 4-5 waves + boss; desaturate (A7).
+- [x] 4.3 `nivel5_acuifero.js` — 4 waves + `planta_treco`; desactivación → final screen.
+- [x] 4.4 No `console.*` in `src/` (A8) — `grep "console\." src/ | grep -v engine/dom.js` → 0.
+- [x] 4.5 Smoke — `python3 -m http.server 8765` → 200; first wave spawns.
 
 ## Phase 5: Verification
 

@@ -12,8 +12,8 @@
 // stays ignorant of game modules.
 //
 // A8 — any debug logging in this module MUST go through
-// `__zarra.{log,warn,error}` from engine/dom.js, never bare
-// `console.*`. The verify.sh check enforces this.
+// `__zarra.{log,warn,error}` from engine/dom.js. Bare `console.X`
+// calls are forbidden by verify.sh outside engine/dom.js.
 
 import * as audio from "../engine/audio.js";
 import { __zarra } from "../engine/dom.js";
