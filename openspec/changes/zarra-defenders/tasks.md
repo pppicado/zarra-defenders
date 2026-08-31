@@ -11,15 +11,15 @@ Forecast: 3680–5280 lines (54 new + 1 modified); single-pr size:exception reco
 
 ## Phase 1: Foundation
 
-- [ ] 1.1 `index.html` — Three.js r128 UMD + `styles.css` + module script.
-- [ ] 1.2 `src/styles.css` — crosshair + HUD + overlays.
-- [ ] 1.3 `src/main.js` — bootstrap; start-screen mousedown (A3).
-- [ ] 1.4 `src/engine/{scene,render}.js` — scene/camera/renderer+dispose; render + camera-shake.
-- [ ] 1.5 `src/engine/input.js` — Pointer Lock; A3; A4 (1 s zero→absolute ×2); `R`/`[`/`]`/`M`.
-- [ ] 1.6 `src/engine/audio.js` — suspended AudioContext + sfx/music + chiptune.
-- [ ] 1.7 `src/engine/loop.js` — rAF; update→render; pause-aware.
-- [ ] 1.8 `src/engine/dom.js` — `window.__zarra = { debug, log, warn, error }` (A8).
-- [ ] 1.9 STRINGS skeleton `src/content/data.js` — 6 `.fuente` from `research/fuentes.md` (A5).
+- [x] 1.1 `index.html` — Three.js r128 UMD + `styles.css` + module script.
+- [x] 1.2 `src/styles.css` — crosshair + HUD + overlays.
+- [x] 1.3 `src/main.js` — bootstrap; start-screen mousedown (A3).
+- [x] 1.4 `src/engine/{scene,render}.js` — scene/camera/renderer+dispose; render + camera-shake.
+- [x] 1.5 `src/engine/input.js` — Pointer Lock; A3; A4 (1 s zero→absolute ×2); `R`/`[`/`]`/`M`.
+- [x] 1.6 `src/engine/audio.js` — suspended AudioContext + sfx/music + chiptune.
+- [x] 1.7 `src/engine/loop.js` — rAF; update→render; pause-aware.
+- [x] 1.8 `src/engine/dom.js` — `window.__zarra = { debug, log, warn, error }` (A8).
+- [x] 1.9 STRINGS skeleton `src/content/data.js` — 6 `.fuente` from `research/fuentes.md` (A5).
 
 ## Phase 2: Content + Models
 

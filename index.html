@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valle de Ayora: Defensores del Territorio</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <!-- HUD root: every overlay panel lives under #app so the input module
+       can dispatch keyboard / pointer-lock events without touching layout. -->
+  <div id="app">
+    <canvas id="game" tabindex="0"></canvas>
+
+    <!-- Crosshair: drawn by DOM (SVG) so CSS can colour-flash on hit. -->
+    <div id="crosshair" class="crosshair" data-state="visible" aria-hidden="true">
+      <svg viewBox="0 0 40 40" width="40" height="40">
+        <circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="2" />
+        <line x1="20" y1="2"  x2="20" y2="14" stroke="currentColor" stroke-width="2" />
+        <line x1="20" y1="26" x2="20" y2="38" stroke="currentColor" stroke-width="2" />
+        <line x1="2"  y1="20" x2="14" y2="20" stroke="currentColor" stroke-width="2" />
+        <line x1="26" y1="20" x2="38" y2="20" stroke="currentColor" stroke-width="2" />
+      </svg>
+    </div>
+
+    <!-- HUD panel: ammo / score / combo / lives / volume. -->
+    <div id="hud-panel" class="hud-panel" data-state="hidden">
+      <div class="hud-row"><span class="hud-key" data-strings="hud.ammo">Munición</span> <span id="hud-ammo" class="hud-val">12 / 12</span></div>
+      <div class="hud-row"><span class="hud-key" data-strings="hud.vidas">Vidas</span> <span id="hud-lives" class="hud-val">3</span></div>
+      <div class="hud-row"><span class="hud-key" data-strings="hud.puntos">Puntos</span> <span id="hud-score" class="hud-val">0</span></div>
+      <div class="hud-row"><span class="hud-key" data-strings="hud.combo">Combo</span> <span id="hud-combo" class="hud-val">×1</span></div>
+      <div class="hud-row"><span class="hud-key" data-strings="hud.volumen">Volumen</span> <span id="hud-vol" class="hud-val">80%</span> <span id="hud-mute" class="hud-mute">♪</span></div>
+    </div>
+
+    <!-- Boss label banner (rendered during boss entry + special tells). -->
+    <div id="boss-banner" class="boss-banner" data-state="hidden">
+      <span id="boss-banner-text" class="boss-banner-text"></span>
+    </div>
+
+    <!-- Start screen. -->
+    <div id="start-screen" class="overlay" data-state="visible">
+      <div class="overlay-card">
+        <h1 class="overlay-title">Valle de Ayora:<br/>Defensores del Territorio</h1>
+        <p class="overlay-subtitle" data-strings="start.subtitle">Un on-rails shooter cívico-pedagógico sobre el macrovertedero de TRECO.</p>
+        <button id="start-button" class="overlay-button" type="modal">Pulsa para empezar</button>
+        <p id="start-error" class="overlay-error" data-state="hidden"></p>
+      </div>
+    </div>
+
+    <!-- Pause overlay. -->
+    <div id="pause-overlay" class="overlay" data-state="hidden">
+      <div class="overlay-card">
+        <h2 class="overlay-title" data-strings="pausa.titulo">Pausa</h2>
+        <button id="pause-continuar" class="overlay-button" type="modal" data-strings="pausa.continuar">Continuar</button>
+        <button id="pause-reiniciar" class="overlay-button" type="modal" data-strings="pausa.reiniciar">Reiniciar nivel</button>
+        <button id="pause-salir" class="overlay-button" type="modal" data-strings="pausa.salir">Salir al menú</button>
+      </div>
+    </div>
+
+    <!-- Game-over overlay. -->
+    <div id="gameover-overlay" class="overlay" data-state="hidden">
+      <div class="overlay-card">
+        <h2 class="overlay-title" data-strings="gameover.titulo">Game over</h2>
+        <p class="overlay-score" id="gameover-score">0</p>
+        <button id="gameover-reintentar" class="overlay-button" type="modal" data-strings="gameover.reintentar">Reintentar nivel</button>
+        <button id="gameover-menu" class="overlay-button" type="modal" data-strings="gameover.menu">Volver al menú de niveles</button>
+      </div>
+    </div>
+
+    <!-- Level select / title (also reachable via "Salir al menú"). -->
+    <div id="level-select" class="overlay" data-state="hidden">
+      <div class="overlay-card">
+        <h2 class="overlay-title" data-strings="menu.titulo">Valle de Ayora</h2>
+        <p class="menu-session-score">
+          <span data-strings="menu.puntos">Puntos</span>: <span id="menu-session-score">0</span>
+        </p>
+        <ul class="menu-levels">
+          <li><button class="overlay-button menu-level" type="modal" data-level="1">1 — Las Hoyas de Caballero (Zarra)</button></li>
+          <li><button class="overlay-button menu-level" type="modal" data-level="2">2 — La Hoz del río Zarra</button></li>
+          <li><button class="overlay-button menu-level" type="modal" data-level="3">3 — Sierra de La Hunde y Palomera</button></li>
+          <li><button class="overlay-button menu-level" type="modal" data-level="4">4 — Casco de Ayora</button></li>
+          <li><button class="overlay-button menu-level" type="modal" data-level="5">5 — El Acuífero (jefe final)</button></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Pre-level data screen. -->
+    <div id="data-screen" class="overlay" data-state="hidden">
+      <div class="overlay-card overlay-card-wide">
+        <p class="data-texto" id="data-texto"></p>
+        <p class="data-fuente" id="data-fuente"></p>
+        <button id="data-continuar" class="overlay-button" type="modal" data-strings="data.continuar">Continuar</button>
+      </div>
+    </div>
+
+    <!-- Final screen (post desactivación). -->
+    <div id="final-screen" class="overlay" data-state="hidden">
+      <div class="overlay-card overlay-card-wide">
+        <h2 class="overlay-title" data-strings="final.titulo">Gracias por defender el Valle</h2>
+        <p class="data-texto" id="final-texto"></p>
+        <ul class="final-links">
+          <li><a id="final-link-plataforma" href="#" target="_blank" rel="noopener">Plataforma vecinal</a></li>
+          <li><a id="final-link-alegaciones" href="#" target="_blank" rel="noopener">Formulario de alegaciones</a></li>
+          <li><a id="final-link-asociacion" href="#" target="_blank" rel="noopener">Asociación Naturalista de Ayora y la Valle</a></li>
+          <li><span id="final-link-hashtag" class="final-hashtag"></span></li>
+        </ul>
+        <button id="final-volver" class="overlay-button" type="modal" data-strings="final.volver">Volver a jugar</button>
+      </div>
+    </div>
+
+    <!-- Credits screen. -->
+    <div id="credits-screen" class="overlay" data-state="hidden">
+      <div class="overlay-card overlay-card-wide">
+        <h2 class="overlay-title" data-strings="creditos.titulo">Créditos</h2>
+        <ul class="credits-list" id="credits-list"></ul>
+        <button id="credits-volver" class="overlay-button" type="modal" data-strings="creditos.volver">Volver al menú</button>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    Three.js UMD bundle. Pinned to r128 — the most recent UMD build at the
+    project's reference baseline. r128 ships THREE.WebGLRenderer,
+    THREE.Group, THREE.BoxGeometry, THREE.MeshBasicMaterial etc. and is
+    small (~620 KB minified) so the project stays well under the 2 MB
+    budget.
+
+    Loaded as a global THREE so the module scripts under src/ can use it
+    without bundling.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!--
+    Engine modules must come before any module that consumes them. Levels
+    and game modules rely on a global namespace exposed by main.js;
+    main.js wires everything together.
+  -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

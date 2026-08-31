@@ -1,0 +1,290 @@
+/* Valle de Ayora: Defensores del Territorio
+ *
+ * Single stylesheet. Per design D1 the layout is src/{engine,game,content,levels}/
+ * but the only required global CSS file is this one. Styles are deliberately
+ * minimal: HUD + overlays only. The 3D scene is rendered to a full-viewport
+ * <canvas> underneath the DOM overlays.
+ *
+ * Conventions:
+ *   - White-on-dark panels, contrast tuned for 2 m readability (per
+ *     ammo-system spec §HUD readable from 2 m).
+ *   - All overlay cards are centered with `position:fixed` so they sit above
+ *     the canvas regardless of scroll.
+ *   - The crosshair is colored via CSS `currentColor` so JS can drive the
+ *     white->red flash by toggling the `crosshair-hit` class (per hit-feedback
+ *     spec §Crosshair Color Flash on Hit).
+ */
+
+:root {
+  --hud-bg: rgba(8, 12, 10, 0.72);
+  --hud-fg: #ffffff;
+  --hud-accent: #ff3030;        /* crosshair flash red, combo highlight */
+  --hud-muted: #b6c2b9;
+  --overlay-bg: rgba(6, 10, 8, 0.88);
+  --overlay-card-bg: rgba(20, 26, 22, 0.94);
+  --overlay-border: #4f5b53;
+  --button-bg: rgba(40, 50, 44, 0.96);
+  --button-bg-hover: rgba(60, 80, 70, 0.98);
+  --button-border: #6a786e;
+  --font-stack: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #060a08;
+  color: var(--hud-fg);
+  font-family: var(--font-stack);
+  font-size: 16px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+}
+
+/* ---------------- Crosshair ---------------- */
+
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  margin-top: -20px;
+  color: var(--hud-fg);
+  pointer-events: none;
+  user-select: none;
+  transition: color 80ms linear;
+  z-index: 10;
+  opacity: 0;
+}
+
+.crosshair[data-state="visible"] {
+  opacity: 1;
+}
+
+.crosshair.crosshair-hit {
+  color: var(--hud-accent);
+}
+
+/* ---------------- HUD panel ---------------- */
+
+.hud-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  min-width: 180px;
+  padding: 10px 14px;
+  background: var(--hud-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 20;
+  opacity: 1;
+  transition: opacity 120ms linear;
+}
+
+.hud-panel[data-state="hidden"] { opacity: 0; pointer-events: none; }
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.hud-key { color: var(--hud-muted); }
+.hud-val { color: var(--hud-fg); font-weight: bold; }
+.hud-mute { color: var(--hud-accent); margin-left: 6px; }
+.hud-mute[data-state="muted"] { color: var(--hud-muted); }
+
+/* ---------------- Boss banner ---------------- */
+
+.boss-banner {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 24px;
+  background: var(--hud-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: 4px;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  z-index: 25;
+  opacity: 0;
+  transition: opacity 80ms linear;
+  pointer-events: none;
+}
+
+.boss-banner[data-state="visible"] { opacity: 1; }
+
+/* ---------------- Overlays ---------------- */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay-bg);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.overlay[data-state="visible"] {
+  display: flex;
+}
+
+.overlay-card {
+  background: var(--overlay-card-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: 8px;
+  padding: 28px 32px;
+  max-width: 520px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+}
+
+.overlay-card-wide {
+  max-width: 720px;
+}
+
+.overlay-title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  letter-spacing: 0.04em;
+}
+
+.overlay-subtitle {
+  margin: 0 0 16px;
+  color: var(--hud-muted);
+  font-size: 14px;
+}
+
+.overlay-button {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--hud-fg);
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 80ms linear;
+}
+
+.overlay-button:hover,
+.overlay-button:focus {
+  background: var(--button-bg-hover);
+  outline: none;
+}
+
+.overlay-error {
+  color: var(--hud-accent);
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.overlay-error[data-state="hidden"] { display: none; }
+
+.overlay-score {
+  font-size: 28px;
+  margin: 16px 0;
+  font-weight: bold;
+}
+
+/* ---------------- Data + Final screens ---------------- */
+
+.data-texto {
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.data-fuente {
+  font-size: 12px;
+  color: var(--hud-muted);
+  margin: 0 0 24px;
+  font-style: italic;
+}
+
+.final-links {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.final-links a,
+.final-links span {
+  color: var(--hud-fg);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.final-hashtag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border: 1px dashed var(--overlay-border);
+  border-radius: 4px;
+  user-select: text;
+}
+
+/* ---------------- Level select menu ---------------- */
+
+.menu-session-score {
+  margin: 8px 0 16px;
+  color: var(--hud-muted);
+}
+
+.menu-levels {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---------------- Credits ---------------- */
+
+.credits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  text-align: left;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.credits-list li {
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--overlay-border);
+  font-size: 14px;
+}
+
+.credits-list li:last-child { border-bottom: none; }
