@@ -152,10 +152,7 @@ html, body {
 .overlay {
   position: absolute;
   inset: 0;
-  /* Sky-atardecer gradient with a faint SVG mountain silhouette and
-     a soft grain pattern. Decorative CSS only — zero raster assets,
-     zero external requests. The mountain pattern is encoded inline as
-     a data: URL so it travels with the stylesheet. */
+  /* Default fallback when --menu-bg isn't set: sunset gradient. */
   background:
     linear-gradient(
       to bottom,
@@ -169,13 +166,35 @@ html, body {
   z-index: 50;
 }
 
+/* Layered backgrounds:
+   - ::before  -> the curated photo from assets/menu-photos/, warm-tinted
+                  to sit inside the sunset palette. Source set per-overlay
+                  via --menu-bg (CSS custom property).
+   - ::after   -> the SVG mountain silhouette + sun that ties every
+                  menu together regardless of which photo is showing.
+*/
 .overlay::before {
-  /* Mountain silhouette + sun + grain — pure CSS/SVG, no assets. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--menu-bg, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* Warm-tint so any photo (green forest, blue river, white village)
+     matches the atardecer palette. Tweak these per-photo via inline
+     style if a specific photo wants a different mood. */
+  filter: sepia(0.18) saturate(1.15) brightness(0.92) contrast(1.05);
+  z-index: 0;
+}
+
+.overlay::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0.55;
+  z-index: 1;
   background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 1280 720' preserveAspectRatio='none'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23fff' stop-opacity='0'/><stop offset='1' stop-color='%23000' stop-opacity='0.35'/></linearGradient></defs><circle cx='980' cy='160' r='70' fill='%23ffd27a' opacity='0.85'/><path d='M0 520 L160 380 L260 460 L420 320 L580 430 L720 350 L880 460 L1040 360 L1280 470 L1280 720 L0 720 Z' fill='url(%23g)'/><path d='M0 580 L120 500 L260 560 L380 480 L520 560 L660 500 L800 580 L960 500 L1120 580 L1280 540 L1280 720 L0 720 Z' fill='%23000' fill-opacity='0.45'/></svg>");
   background-size: cover;
   background-position: center;
@@ -186,8 +205,19 @@ html, body {
   display: flex;
 }
 
+/* Per-overlay backgrounds. JS sets `--menu-bg` on data-screen per
+   level; the others have static defaults here. */
+#start-screen   { --menu-bg: url('../assets/menu-photos/start.webp'); }
+#level-select   { --menu-bg: url('../assets/menu-photos/start.webp'); }
+#pause-overlay  { --menu-bg: url('../assets/menu-photos/start.webp'); }
+#gameover-overlay { --menu-bg: url('../assets/menu-photos/start.webp'); }
+#data-screen    { /* set dynamically by pedagogy.showDatoScreen() */ }
+#final-screen   { --menu-bg: url('../assets/menu-photos/final.webp'); }
+#credits-screen { --menu-bg: url('../assets/menu-photos/credits.webp'); }
+
 .overlay-card {
   position: relative;
+  z-index: 2;
   background:
     linear-gradient(
       180deg,
@@ -201,8 +231,6 @@ html, body {
   text-align: center;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7),
               0 0 0 1px rgba(214, 179, 94, 0.15) inset;
-  /* Subtle warm tint over the card so it sits on the sky without
-     looking like a floating rectangle. */
   backdrop-filter: blur(2px);
 }
 

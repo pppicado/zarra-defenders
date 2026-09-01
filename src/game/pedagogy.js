@@ -39,6 +39,18 @@ export function showDatoScreen(n) {
     setOverlayText("data-screen", "data-texto", dato.texto);
     setOverlayText("data-screen", "data-fuente", dato.fuente);
 
+    // Per-level background photo: each level has its own landscape.
+    // n=1 -> level-1-hoyas.webp, etc. Falls back to start.webp if the
+    // asset is missing.
+    const overlay = document.getElementById("data-screen");
+    if (overlay) {
+      const slug = (n >= 1 && n <= 5) ? `level-${n}-${["hoyas","hoz","sierra","casco","acuifero"][n-1]}` : "final";
+      overlay.style.setProperty(
+        "--menu-bg",
+        `url("../assets/menu-photos/${slug}.webp")`
+      );
+    }
+
     // Dato-screen audio: NO music; a single soft beep on entry (per
     // data-screen spec §Text-Only Audio (Optional Beep)).
     audio.stopMusic();

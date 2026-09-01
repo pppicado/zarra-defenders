@@ -119,8 +119,8 @@
   </div>
 
   <!--
-    Three.js UMD bundle. Pinned to r128 — the most recent UMD build at the
-    project's reference baseline. r128 ships THREE.WebGLRenderer,
+    Three.js UMD bundle. Pinned to r128 — the most recent UMD build at
+    the project's reference baseline. r128 ships THREE.WebGLRenderer,
     THREE.Group, THREE.BoxGeometry, THREE.MeshBasicMaterial etc. and is
     small (~620 KB minified) so the project stays well under the 2 MB
     budget.
@@ -129,6 +129,14 @@
     without bundling.
   -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!--
+    GLTFLoader for external user-provided 3D models (glTF / glb).
+    Three.js core (above) doesn't include loaders; this script adds
+    THREE.GLTFLoader as a global. Only loaded when the user drops a
+    .glb or .gltf file under assets/models-external/.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <!--
     Engine modules must come before any module that consumes them. Levels
