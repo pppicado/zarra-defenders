@@ -26,6 +26,13 @@
   --button-bg: rgba(40, 50, 44, 0.96);
   --button-bg-hover: rgba(60, 80, 70, 0.98);
   --button-border: #6a786e;
+  /* New palette: warmer tones from the Valle de Ayora landscape so the
+     menus stop feeling like a terminal and start feeling like a place. */
+  --valle-sky-top: #f4d28b;     /* atardecer manchego */
+  --valle-sky-mid: #e08a4f;
+  --valle-sky-bot: #6c3a47;     /* tierra / sombra */
+  --valle-accent: #2e6b3f;      /* forest green - vegetation */
+  --valle-warn:   #d6b35e;      /* mostaza / cosecha */
   --font-stack: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
@@ -57,6 +64,9 @@ html, body {
   height: 100%;
   display: block;
   background: #000;
+  /* Prevent mobile browsers from interpreting taps as scroll / pinch /
+     double-tap-to-zoom while playing. Pointer Events still fire. */
+  touch-action: none;
 }
 
 /* ---------------- Crosshair ---------------- */
@@ -142,11 +152,34 @@ html, body {
 .overlay {
   position: absolute;
   inset: 0;
-  background: var(--overlay-bg);
+  /* Sky-atardecer gradient with a faint SVG mountain silhouette and
+     a soft grain pattern. Decorative CSS only — zero raster assets,
+     zero external requests. The mountain pattern is encoded inline as
+     a data: URL so it travels with the stylesheet. */
+  background:
+    linear-gradient(
+      to bottom,
+      var(--valle-sky-top) 0%,
+      var(--valle-sky-mid) 45%,
+      var(--valle-sky-bot) 100%
+    );
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 50;
+}
+
+.overlay::before {
+  /* Mountain silhouette + sun + grain — pure CSS/SVG, no assets. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 1280 720' preserveAspectRatio='none'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23fff' stop-opacity='0'/><stop offset='1' stop-color='%23000' stop-opacity='0.35'/></linearGradient></defs><circle cx='980' cy='160' r='70' fill='%23ffd27a' opacity='0.85'/><path d='M0 520 L160 380 L260 460 L420 320 L580 430 L720 350 L880 460 L1040 360 L1280 470 L1280 720 L0 720 Z' fill='url(%23g)'/><path d='M0 580 L120 500 L260 560 L380 480 L520 560 L660 500 L800 580 L960 500 L1120 580 L1280 540 L1280 720 L0 720 Z' fill='%23000' fill-opacity='0.45'/></svg>");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .overlay[data-state="visible"] {
@@ -154,13 +187,31 @@ html, body {
 }
 
 .overlay-card {
-  background: var(--overlay-card-bg);
-  border: 1px solid var(--overlay-border);
-  border-radius: 8px;
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(28, 22, 18, 0.92) 0%,
+      rgba(20, 26, 22, 0.96) 100%
+    );
+  border: 1px solid rgba(214, 179, 94, 0.45);
+  border-radius: 10px;
   padding: 28px 32px;
   max-width: 520px;
   text-align: center;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7),
+              0 0 0 1px rgba(214, 179, 94, 0.15) inset;
+  /* Subtle warm tint over the card so it sits on the sky without
+     looking like a floating rectangle. */
+  backdrop-filter: blur(2px);
+}
+
+.overlay-title {
+  margin: 0 0 16px;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  color: var(--valle-warn);
+  text-shadow: 0 2px 0 rgba(0,0,0,0.4);
 }
 
 .overlay-card-wide {
@@ -183,21 +234,30 @@ html, body {
   display: block;
   width: 100%;
   margin: 8px 0;
-  padding: 10px 16px;
+  padding: 12px 16px;
   font-family: inherit;
   font-size: 16px;
-  color: var(--hud-fg);
-  background: var(--button-bg);
-  border: 1px solid var(--button-border);
-  border-radius: 4px;
+  color: #fff8e0;
+  background: linear-gradient(180deg, #3a5a3f 0%, #2e6b3f 100%);
+  border: 1px solid rgba(214, 179, 94, 0.55);
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 80ms linear;
+  letter-spacing: 0.02em;
+  transition: filter 80ms linear, transform 80ms linear;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
 }
 
 .overlay-button:hover,
 .overlay-button:focus {
-  background: var(--button-bg-hover);
+  background: linear-gradient(180deg, #4a7a52 0%, #3a8a4f 100%);
   outline: none;
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.overlay-button:active {
+  transform: translateY(1px);
+  filter: brightness(0.95);
 }
 
 .overlay-error {

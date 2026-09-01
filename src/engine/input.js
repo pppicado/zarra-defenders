@@ -135,8 +135,13 @@ export function onVolume(fn) { volumeCallbacks.push(fn); }
 const muteCallbacks = [];
 export function onMute(fn) { muteCallbacks.push(fn); }
 
-document.addEventListener("mousedown", (ev) => {
+// Use Pointer Events so the same handler covers mouse clicks AND touch
+// taps on mobile. `mousedown` doesn't fire on touch without explicit
+// `preventDefault()` on `touchstart`, which broke mobile play. The
+// Pointer Events API is the unified, cross-input surface.
+document.addEventListener("pointerdown", (ev) => {
   if (!lockActive) return;
+  // Buttons: 0 = primary (mouse left button / touch / pen tip).
   if (ev.button !== 0) return;
   for (const fn of fireCallbacks) fn(ev);
 });

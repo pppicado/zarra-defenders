@@ -276,18 +276,86 @@ function desactivar(bossGroup) {
 
 // ---- Per-frame update -----------------------------------------------
 
+// Enemies that cross this z (camera is at z=0) are considered to have
+// "reached" the player. They either cost a life or get absorbed by an
+// active ALEGACION shield (visual feedback only).
+const PASS_THRESHOLD_Z = 2;
+
+// Per-enemy phase offset for lateral wobble — assigned at spawn time so
+// each enemy bobs independently and the wave looks organic, not a
+// straight conveyor belt of identical trajectories.
+function assignWobble(group) {
+  if (typeof group.userData.wobblePhase !== "number") {
+    group.userData.wobblePhase = Math.random() * Math.PI * 2;
+    group.userData.wobbleAmp = 0.6 + Math.random() * 1.4;   // 0.6 - 2.0 units
+    group.userData.baseX = group.position.x;
+  }
+}
+
 export function update(dt) {
   // Slow-motion (MANIFESTACION) reduces effective dt for enemy motion.
   const slowFactor = state.slowT > 0 ? 0.5 : 1.0;
   const effectiveDt = dt * slowFactor;
+  const t = performance.now() / 1000;
 
-  for (const e of enemies.list) {
+  // Walk the list backwards so splice() doesn't break the iteration.
+  for (let i = enemies.list.length - 1; i >= 0; i--) {
+    const e = enemies.list[i];
+
     // A7 — halted bosses do not move.
     if (e.userData.lifecycleHalt) continue;
     if (e.userData.lifecycle === "desactivacion") continue;
+
+    assignWobble(e);
+
     // Standard enemies move toward the camera at a constant speed.
     const speed = e.userData.isBoss ? 1.0 : 4.0;
     e.position.z += speed * effectiveDt;
+
+    // Lateral wobble — sinusoidal x around the spawn-time base, so
+    // enemies drift side-to-side instead of flying dead-straight.
+    e.position.x = e.userData.baseX + Math.sin(t * 1.4 + e.userData.wobblePhase) * e.userData.wobbleAmp;
+
+    // Enemy passed the camera. Lose a life (or absorb via ALEGACION).
+    if (e.position.z > PASS_THRESHOLD_Z) {
+      const shielded = state.shieldT > 0;
+      if (shielded) {
+        // ALEGACION absorbed the hit — visual cue only, no life lost.
+        // Pop the enemy off the scene with a small desaturate.
+        scene.remove(e);
+        e.traverse((child) => {
+          if (child.material && child.material.color) {
+            const c = child.material.color;
+            const avg = (c.r + c.g + c.b) / 3;
+            child.material.color.setRGB(avg * 1.5, avg * 1.5, avg * 1.5);
+          }
+        });
+        enemies.list.splice(i, 1);
+      } else {
+        // Real hit — lose a life, dispose, game-over if lives reach 0.
+        scene.remove(e);
+        e.traverse((child) => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            const ms = Array.isArray(child.material) ? child.material : [child.material];
+            ms.forEach((m) => m.dispose());
+          }
+        });
+        enemies.list.splice(i, 1);
+        loseLife();
+      }
+    }
+  }
+}
+
+function loseLife() {
+  state.lives -= 1;
+  if (state.lives <= 0) {
+    state.lives = 0;
+    state.gameOver = true;
+    // Trigger game-over overlay. Dynamic import avoids a load-time
+    // cycle with game/over.js.
+    import("./over.js").then((o) => o.show());
   }
 }
 
