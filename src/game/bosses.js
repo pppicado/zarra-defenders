@@ -122,12 +122,14 @@ export function update(dt) {
       }
       break;
     case "VULNERABLE":
+      // After the vulnerable window closes, advance to the next
+      // INVULNERABLE phase. The boss FSM loops indefinitely — only
+      // HP depletion (handled by registerHit -> enterDesactivacion)
+      // ends the fight. If the player can't defeat the boss in time,
+      // they lose lives via the standard "enemy reaches the camera"
+      // path and eventually game-over.
       if (bosses.stateT >= VULNERABLE_SEC) {
         bosses.windowIndex += 1;
-        if (bosses.windowIndex >= 3) {
-          enterDesactivacion();
-          break;
-        }
         bosses.state = "INVULNERABLE";
         bosses.stateT = 0;
       }

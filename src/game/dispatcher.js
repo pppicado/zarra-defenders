@@ -216,6 +216,10 @@ export async function restartLevel() {
 export function exitToMenu() {
   if (!_currentLevelMod) return;
 
+  // Mark state.inMenu = true so pause.js's ESC handler refuses to
+  // open the pause overlay while the player is in the menu.
+  import("./state.js").then((s) => { s.state.inMenu = true; });
+
   // Tear down runtime-spawned enemies first (they're not in
   // _levelObjects because enemies.js adds them to scene directly).
   // We import dynamically to keep this module's load graph acyclic.

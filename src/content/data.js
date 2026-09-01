@@ -97,9 +97,13 @@ export const STRINGS = {
       plataforma:      "Plataforma vecinal (nomacrovertederozarra.com)",
       plataforma_url:  "https://nomacrovertederozarra.com",
       alegaciones:     "Formulario de alegaciones",
-      alegaciones_url: "https://www.example.org/alegaciones-zarra",
+      // TODO: replace with the Generalitat Valenciana's alegaciones form URL
+      // once they publish it. Currently points to the plataforma vecinal
+      // (nomacrovertederozarra.com) as a known-good fallback.
+      alegaciones_url: "https://nomacrovertederozarra.com",
       asociacion:      "Asociación Naturalista de Ayora y la Valle",
-      asociacion_url:  "https://www.example.org/asociacion-naturalista-ayora",
+      // TODO: replace with the Asociación Naturalista's website once known.
+      asociacion_url:  "https://nomacrovertederozarra.com",
       hashtag:         "#NoAlMacrovertederoDeZarra",
     },
     volver: "Volver a jugar",

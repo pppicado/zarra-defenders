@@ -23,6 +23,7 @@ import { get as getModel } from "../content/models/index.js";
 import * as hitFeedback from "./hit-feedback.js";
 import * as scoring from "./scoring.js";
 import * as powerups from "./powerups.js";
+import * as bosses from "./bosses.js";
 import * as dispatcher from "./dispatcher.js";
 import { state } from "./state.js";
 import { MECANICA } from "../content/data.js";
@@ -71,7 +72,9 @@ export function spawn(enemyId, opts = {}) {
 
 /**
  * Spawn a boss. Bosses are tracked separately and don't count toward the
- * 3-enemy cap (per spec §Cap unaffected by boss presence).
+ * 3-enemy cap (per spec §Cap unaffected by boss presence). The boss
+ * FSM (entry animation, vulnerability windows, banner label) is owned
+ * by `bosses.js` and starts here.
  */
 export function spawnBoss(bossId) {
   const factory = getModel(bossId);
@@ -81,6 +84,9 @@ export function spawnBoss(bossId) {
   group.userData.bossId = bossId;
   enemies.list.push(group);
   bossActive = true;
+  // Kick off the FSM: 2 s ENTRY (banner visible, invulnerable) ->
+  // INVULNERABLE -> SPECIAL_TELL -> VULNERABLE, looping 3 windows.
+  bosses.start(bossId, group);
   return group;
 }
 
@@ -130,24 +136,52 @@ export function tryHit(forward) {
 }
 
 function applyHit(enemyGroup) {
-  // Flash white (hit-feedback §Enemy Flash on Hit)
+  // Flash white on EVERY hit attempt (visual feedback regardless of
+  // whether the shot connected).
   enemyGroup.traverse((child) => {
     if (child.isMesh) hitFeedback.flashEnemy(child);
   });
 
-  // HP decrement
-  enemyGroup.userData.hp = (enemyGroup.userData.hp || 1) - 1;
+  // ---- Boss hits: route through the FSM (vulnerability windows) ----
+  //
+  // Per boss-system spec §Vulnerable Windows, shots during ENTRY /
+  // INVULNERABLE / SPECIAL_TELL are rejected. The FSM in bosses.js
+  // decrements HP only during VULNERABLE. When HP hits 0 the FSM
+  // transitions to DESACTIVACION and we destroy the enemy here.
+  if (enemyGroup.userData.isBoss) {
+    if (bosses.bosses.current !== enemyGroup) {
+      // Stale boss reference (already deactivated or cleared). Treat
+      // as a no-op hit.
+      return;
+    }
+    const accepted = bosses.registerHit();
+    if (accepted) {
+      // Sync HP into userData for any reader that wants to inspect it.
+      enemyGroup.userData.hp = bosses.bosses.hp;
+      hitFeedback.onHit({ isBoss: true, combo: state.combo });
+      if (bosses.bosses.state === "DESACTIVACION") {
+        destroyEnemy(enemyGroup);
+      }
+    } else {
+      // Shot during an invulnerable phase. Play the crosshair flash
+      // (already above) + a small SFX cue via hitFeedback onHit with
+      // combo=0 (no screen-shake because the spec says invulnerable
+      // shots are visual-only).
+      hitFeedback.onHit({ isBoss: false, combo: 0 });
+    }
+    return;
+  }
 
+  // ---- Standard enemy HP decrement + destruction ----
+  enemyGroup.userData.hp = (enemyGroup.userData.hp || 1) - 1;
   if (enemyGroup.userData.hp <= 0) {
     destroyEnemy(enemyGroup);
     return;
   }
 
-  // Hit registered but not destroyed: hit-feedback fires for the
-  // crosshair flash + (on bosses) screen-shake, but scoring only runs
-  // on destruction (per combo-scoring §Per-Enemy Base Points).
+  // Hit registered but not destroyed.
   hitFeedback.onHit({
-    isBoss: !!enemyGroup.userData.isBoss,
+    isBoss: false,
     combo: state.combo,
   });
 }
