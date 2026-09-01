@@ -219,49 +219,206 @@ export function playBossEntry() {
 
 // ----- Music loop ------------------------------------------------------
 //
-// Minimal chiptune: a square-wave bass + lead melody that loops every 4 s.
-// Tempo per design is not encoded in spec — the 4 s loop matches a casual
-// ~120 BPM feel suitable for an event venue (R12 mitigation). Volume is
-// duckable via `setMusicVolume`.
+// Procedural composition in the style of Spanish folk guitar. Three
+// layers — plucked bass, arpeggio mid, accent treble — built from FM
+// synthesis + percussive envelopes so notes feel "picked" rather than
+// electronic. A minor pentatonic (A C D E G) keeps it modal and folk-ish
+// no matter what pattern plays.
+//
+// The full loop is ~40 s before any bar repeats; patterns are randomised
+// inside the pentatonic scale so two playthroughs of the same level
+// never sound identical. Volume is duckable via setMusicVolume.
 
-let musicNodes = [];
 let musicTimer = null;
+let musicLookahead = null;
+const scheduled = new Set();   // set of (bar, slot) tuples already scheduled
+
+// A minor pentatonic across 2 octaves — Hz.
+const SCALE = [
+  220.00, 261.63, 293.66, 329.63, 392.00,   // A3 C4 D4 E4 G4
+  440.00, 523.25, 587.33, 659.25, 783.99,   // A4 C5 D5 E5 G5
+];
+const SCALE_LOW = [110.00, 130.81, 146.83, 164.81, 196.00]; // A2..G2
+
+// Three pattern banks. Each is an array of (noteIndex, slotInBar) where
+// noteIndex is into SCALE/SCALE_LOW and slotInBar is 0..15 (16th notes
+// in a 4/4 bar).
+const PATTERNS = [
+  // Pattern 0 — arpeggio + bass
+  [
+    [0, 0],  [2, 4],  [4, 8],  [2, 12],
+    [0, 0],  [2, 6],  [3, 10], [1, 14],
+  ],
+  // Pattern 1 — call + response
+  [
+    [4, 0],  [6, 4],
+    [2, 8],  [3, 12],
+    [1, 4],  [2, 10],
+  ],
+  // Pattern 2 — walking bass + chord tones
+  [
+    [0, 0],  [2, 4],  [4, 8],  [3, 12],
+    [1, 6],  [3, 10],
+    [2, 2],  [4, 14],
+  ],
+];
+const BASS_PATTERNS = [
+  // Plucked bass: root on 1 and 3, fifth on 2 and 4. Each row MUST be
+  // its own nested array or JS flattens everything into a single row.
+  [[0, 0], [2, 8]],
+  [[1, 0], [2, 8]],
+  [[2, 0], [3, 8]],
+  [[0, 0], [4, 8]],
+];
+const ACCENT_PATTERN = [
+  // Occasional high accent (every other bar)
+  [[7, 6]],
+  [],
+  [[8, 14]],
+  [],
+];
+
+let currentPattern = 0;
+let currentBassPattern = 0;
+let currentAccentIndex = 0;
+
+/**
+ * Pluck a string-like tone via FM: a sine carrier modulated by another
+ * sine at harmonic ratio, with a percussive envelope.
+ */
+function pluckNote(freq, t, duration, amp = 0.18) {
+  // Carrier + modulator for FM bell-ish timbre.
+  const carrier = audioCtx.createOscillator();
+  const modulator = audioCtx.createOscillator();
+  const modGain = audioCtx.createGain();
+  const env = audioCtx.createGain();
+
+  carrier.type = "sine";
+  carrier.frequency.setValueAtTime(freq, t);
+  modulator.type = "sine";
+  modulator.frequency.setValueAtTime(freq * 2.71, t);  // inharmonic ratio
+  modGain.gain.setValueAtTime(freq * 0.6, t);
+  modGain.gain.exponentialRampToValueAtTime(0.01, t + duration * 0.8);
+  modulator.connect(modGain);
+  modGain.connect(carrier.frequency);
+
+  // Plucked envelope: fast attack, exponential decay, ~0.5 s tail.
+  env.gain.setValueAtTime(0, t);
+  env.gain.linearRampToValueAtTime(amp, t + 0.005);
+  env.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+  carrier.connect(env);
+  env.connect(musicGain);
+  carrier.start(t);
+  modulator.start(t);
+  carrier.stop(t + duration);
+  modulator.stop(t + duration);
+}
+
+/**
+ * Pluck a low bass note with a slightly longer body.
+ */
+function pluckBass(freq, t, duration, amp = 0.22) {
+  const carrier = audioCtx.createOscillator();
+  const modulator = audioCtx.createOscillator();
+  const modGain = audioCtx.createGain();
+  const env = audioCtx.createGain();
+  const lowpass = audioCtx.createBiquadFilter();
+
+  carrier.type = "sine";
+  carrier.frequency.setValueAtTime(freq, t);
+  modulator.type = "sine";
+  modulator.frequency.setValueAtTime(freq * 1.5, t);
+  modGain.gain.setValueAtTime(freq * 0.4, t);
+  modGain.gain.exponentialRampToValueAtTime(0.01, t + duration * 0.7);
+  modulator.connect(modGain);
+  modGain.connect(carrier.frequency);
+
+  env.gain.setValueAtTime(0, t);
+  env.gain.linearRampToValueAtTime(amp, t + 0.008);
+  env.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+  // Soft lowpass so the bass doesn't clash with the SFX.
+  lowpass.type = "lowpass";
+  lowpass.frequency.setValueAtTime(800, t);
+
+  carrier.connect(env);
+  env.connect(lowpass);
+  lowpass.connect(musicGain);
+  carrier.start(t);
+  modulator.start(t);
+  carrier.stop(t + duration);
+  modulator.stop(t + duration);
+}
+
+function scheduleBar(barStartTime, barIndex) {
+  const bpm = 88;
+  const step = 60 / bpm / 4;   // 16th notes
+  const barLen = step * 16;
+
+  // Pick the next pattern (rotate, with occasional random jump).
+  if (barIndex > 0 && barIndex % 4 === 0 && Math.random() < 0.3) {
+    currentPattern = (currentPattern + 1 + Math.floor(Math.random() * (PATTERNS.length - 1))) % PATTERNS.length;
+    currentBassPattern = (currentBassPattern + 1 + Math.floor(Math.random() * (BASS_PATTERNS.length - 1))) % BASS_PATTERNS.length;
+  }
+
+  // Mid arpeggio.
+  for (const [idx, slot] of PATTERNS[currentPattern]) {
+    const t = barStartTime + slot * step;
+    const freq = SCALE[idx];
+    pluckNote(freq, t, step * 1.8, 0.14);
+  }
+
+  // Bass (slower, 8th note pulse on beats 1 and 3).
+  for (const [idx, slot] of BASS_PATTERNS[currentBassPattern]) {
+    const t = barStartTime + slot * step;
+    const freq = SCALE_LOW[idx];
+    pluckBass(freq, t, step * 2.5, 0.18);
+  }
+
+  // Accent (every other bar).
+  const accents = ACCENT_PATTERN[currentAccentIndex % ACCENT_PATTERN.length];
+  for (const [idx, slot] of accents) {
+    const t = barStartTime + slot * step;
+    const freq = SCALE[idx] * 2;  // octave up for sparkle
+    pluckNote(freq, t, step * 2, 0.08);
+  }
+  currentAccentIndex++;
+}
+
+function scheduleLoop() {
+  if (!audioCtx) return;
+  const barLen = (60 / 88) * 4;          // seconds per bar at 88 BPM
+  const lookahead = 2.0;                // seconds of audio we keep queued
+  const interval = 0.5;                 // schedule every 0.5 s
+  let nextBarTime = audioCtx.currentTime + 0.1;
+  let barIndex = 0;
+
+  function tick() {
+    const horizon = audioCtx.currentTime + lookahead;
+    while (nextBarTime < horizon) {
+      const key = `bar-${barIndex}`;
+      if (!scheduled.has(key)) {
+        scheduleBar(nextBarTime, barIndex);
+        scheduled.add(key);
+      }
+      nextBarTime += barLen;
+      barIndex++;
+    }
+  }
+
+  tick();
+  musicTimer = setInterval(tick, interval * 1000);
+}
 
 export function startMusic() {
   if (!audioCtx) return;
   if (musicTimer) return;
-  const bpm = 120;
-  const step = 60 / bpm / 2;     // 8th notes
-  const notes = [262, 330, 392, 330, 294, 262, 392, 330];
-
-  function scheduleBar() {
-    const t0 = audioCtx.currentTime + 0.05;
-    for (let i = 0; i < notes.length; i++) {
-      const t = t0 + i * step;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = "square";
-      o.frequency.setValueAtTime(notes[i], t);
-      g.gain.setValueAtTime(0.12, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + step * 0.7);
-      o.connect(g); g.connect(musicGain);
-      o.start(t); o.stop(t + step * 0.8);
-
-      // Bass
-      const o2 = audioCtx.createOscillator();
-      const g2 = audioCtx.createGain();
-      o2.type = "triangle";
-      o2.frequency.setValueAtTime(notes[i] / 2, t);
-      g2.gain.setValueAtTime(0.10, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + step * 0.9);
-      o2.connect(g2); g2.connect(musicGain);
-      o2.start(t); o2.stop(t + step);
-    }
-    musicNodes = [];            // nodes are GC'd after stop; no leak
-  }
-
-  scheduleBar();
-  musicTimer = setInterval(scheduleBar, step * notes.length * 1000);
+  scheduled.clear();
+  currentPattern = 0;
+  currentBassPattern = 0;
+  currentAccentIndex = 0;
+  scheduleLoop();
 }
 
 export function stopMusic() {
