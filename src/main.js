@@ -14,6 +14,9 @@ import * as audio from "./engine/audio.js";
 import * as loop from "./engine/loop.js";
 import { setOverlayVisible } from "./engine/dom.js";
 import { STRINGS } from "./content/data.js";
+import * as ammo from "./game/ammo.js";
+import * as enemies from "./game/enemies.js";
+import { camera } from "./engine/scene.js";
 
 // ---- HUD strings from STRINGS (data-strings attribute) -----------------
 
@@ -58,46 +61,47 @@ input.onStartGesture(() => {
   });
 });
 
-// ---- Pause overlay wiring ---------------------------------------------
+// ---- Fire handler (Bug D fix) -----------------------------------------
+//
+// The engine's mousedown handler (engine/input.js) iterates a list of
+// `fireCallbacks`. This is the ONLY registered callback — without it,
+// every click would silently do nothing. We:
+//   1. Consume one round of ammo (no-op if reloading or empty mag).
+//   2. Build the world-space forward vector from the camera position +
+//      the input.aim yaw/pitch (input.js maintains yaw/pitch from
+//      mousemove deltas).
+//   3. Hand the forward vector to enemies.tryHit() — a raycast that
+//      hits the first enemy under the crosshair.
+//
+// THREE is loaded as a UMD global from index.html (r128), so it's
+// available here without an import.
 
-input.onEscape(() => {
-  input.exitLock();
-  setOverlayVisible("pause-overlay", true);
+input.onFire(() => {
+  if (!ammo.tryFire()) return;
+  const aim = input.aim;
+  const cp = Math.cos(aim.pitch);
+  const sp = Math.sin(aim.pitch);
+  const cy = Math.cos(aim.yaw);
+  const sy = Math.sin(aim.yaw);
+  // Three.js camera default forward is -Z. Yaw around Y, pitch around X.
+  // World-space forward:
+  //   x = -sin(yaw) * cos(pitch)
+  //   y =  sin(pitch)
+  //   z = -cos(yaw) * cos(pitch)
+  const forward = new THREE.Vector3(-sy * cp, sp, -cy * cp);
+  enemies.tryHit(forward);
 });
 
-const pauseCont = document.getElementById("pause-continuar");
-if (pauseCont) pauseCont.addEventListener("click", () => {
-  input.requestLock();
-  setOverlayVisible("pause-overlay", false);
-});
+// ---- Pause / Game-over overlays (Bug E + H fix) ----------------------
+//
+// The pause.js and over.js modules own their own state mutation
+// (state.paused, loop.pause()) — main.js used to have its own
+// incomplete copies that didn't actually pause the loop. We delegate
+// entirely to the modules' `wire()` so a single source of truth owns
+// pause + game-over semantics.
 
-const pauseReiniciar = document.getElementById("pause-reiniciar");
-if (pauseReiniciar) pauseReiniciar.addEventListener("click", () => {
-  input.exitLock();
-  setOverlayVisible("pause-overlay", false);
-  import("./game/dispatcher.js").then((d) => d.restartLevel());
-});
-
-const pauseSalir = document.getElementById("pause-salir");
-if (pauseSalir) pauseSalir.addEventListener("click", () => {
-  input.exitLock();
-  setOverlayVisible("pause-overlay", false);
-  showLevelSelect();
-});
-
-// ---- Game-over overlay wiring -----------------------------------------
-
-const gameoverReintentar = document.getElementById("gameover-reintentar");
-if (gameoverReintentar) gameoverReintentar.addEventListener("click", () => {
-  setOverlayVisible("gameover-overlay", false);
-  import("./game/dispatcher.js").then((d) => d.restartLevel());
-});
-
-const gameoverMenu = document.getElementById("gameover-menu");
-if (gameoverMenu) gameoverMenu.addEventListener("click", () => {
-  setOverlayVisible("gameover-overlay", false);
-  showLevelSelect();
-});
+import("./game/pause.js").then((p) => p.wire());
+import("./game/over.js").then((o) => o.wire());
 
 // ---- Volume + mute wiring (per hit-feedback spec) --------------------
 
@@ -139,7 +143,7 @@ if (finalVolver) finalVolver.addEventListener("click", () => {
   showLevelSelect();
 });
 
-const creditsVolver = document.getElementById("credits-volver");
+const creditsVolver = document.getElementById("credits-screen");
 if (creditsVolver) creditsVolver.addEventListener("click", () => {
   setOverlayVisible("credits-screen", false);
   showLevelSelect();

@@ -54,6 +54,10 @@ export function wire() {
   const salir = document.getElementById("pause-salir");
   if (salir) salir.addEventListener("click", () => {
     hide();
+    // Reuse the main.js showLevelSelect() flow: tear down the scene
+    // AND show the level-select overlay. main.js wires both via
+    // exitToMenu() + setOverlayVisible("level-select", true).
     import("./dispatcher.js").then((d) => d.returnToMenu());
+    setOverlayVisible("level-select", true);
   });
 }

@@ -151,6 +151,10 @@ export async function startLevel(n, levelMod) {
   levelMod.start();
   _levelObjects = scene.children.slice(before);
 
+  // Reveal the HUD now that the level scene is live.
+  const hud = await import("./hud.js");
+  hud.show();
+
   emit("zarra:level-start", { n });
 }
 
@@ -185,6 +189,11 @@ export async function restartLevel() {
   _currentLevelMod.start();
   _levelObjects = scene.children.slice(before);
 
+  // Reveal the HUD again (it stays visible across retries, but
+  // hide() might have been called via the gameover path).
+  const hud = await import("./hud.js");
+  hud.show();
+
   emit("zarra:level-restart", { n: _currentLevelN });
 }
 
@@ -200,9 +209,30 @@ export async function restartLevel() {
  * Emits `zarra:level-exit` so HUD/scoring modules can clear
  * level-local UI (combo timer, score popup, etc.) without importing
  * the dispatcher or state.
+ *
+ * Aliased as `returnToMenu()` for callers (pause.js, over.js) that
+ * prefer the verb-form.
  */
 export function exitToMenu() {
   if (!_currentLevelMod) return;
+
+  // Tear down runtime-spawned enemies first (they're not in
+  // _levelObjects because enemies.js adds them to scene directly).
+  // We import dynamically to keep this module's load graph acyclic.
+  import("./enemies.js").then((e) => {
+    for (const enemy of e.enemies.list) {
+      scene.remove(enemy);
+      enemy.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          const ms = Array.isArray(child.material) ? child.material : [child.material];
+          ms.forEach((m) => m.dispose());
+        }
+      });
+    }
+    e.enemies.list.length = 0;
+    e.enemies.spawnQueue.length = 0;
+  });
 
   for (const obj of _levelObjects) {
     scene.remove(obj);
@@ -216,5 +246,10 @@ export function exitToMenu() {
   _currentLevelMod = null;
   _currentLevelN = 0;
 
+  // Hide the HUD while we're at the menu.
+  import("./hud.js").then((hud) => hud.hide());
+
   emit("zarra:level-exit");
 }
+
+export const returnToMenu = exitToMenu;

@@ -51,5 +51,6 @@ export function wire() {
   if (menu) menu.addEventListener("click", () => {
     hide();
     import("./dispatcher.js").then((d) => d.returnToMenu());
+    setOverlayVisible("level-select", true);
   });
 }
