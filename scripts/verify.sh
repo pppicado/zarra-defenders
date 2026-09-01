@@ -95,7 +95,7 @@ echo
 
 # --------------------------------------------------------------------- 3
 echo "$(bold "3. Model catalog count")"
-MODEL_COUNT=$(find "$MODELS" -name '*.js' 2>/dev/null | wc -l | tr -d ' ')
+MODEL_COUNT=$(find "$MODELS" -name '*.js' 2>/dev/null | grep -v '/_' | wc -l | tr -d ' ')
 check_eq "src/content/models/*.js count" "22" "$MODEL_COUNT"
 echo
 

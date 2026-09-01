@@ -166,7 +166,7 @@ export const STRINGS = {
     bossEntrySec:    2,
     vulnerableSec:   4,
     invulnerableSec: 3,
-    enemyCap:        3,
+    enemyCap:        5,
   },
 };
 

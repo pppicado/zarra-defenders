@@ -302,9 +302,14 @@ export function update(dt) {
   for (let i = enemies.list.length - 1; i >= 0; i--) {
     const e = enemies.list[i];
 
-    // A7 — halted bosses do not move.
+    // A7 — halted bosses do not move. NOTE: `lifecycle === 'desactivacion'`
+    // is a STATIC marker on bosses (set at spawn per A7) that tells the
+    // destruction path to use the desaturation animation. It is NOT a
+    // runtime "halt" signal. Only `lifecycleHalt` (set by `desactivar()`
+    // after HP reaches 0) freezes the boss. Skipping on `lifecycle`
+    // alone was a Bug that let bosses pass the camera without costing
+    // a life.
     if (e.userData.lifecycleHalt) continue;
-    if (e.userData.lifecycle === "desactivacion") continue;
 
     assignWobble(e);
 
