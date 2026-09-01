@@ -187,3 +187,34 @@ export async function restartLevel() {
 
   emit("zarra:level-restart", { n: _currentLevelN });
 }
+
+/**
+ * Exit the current level back to the menu. Synchronous so the caller
+ * (main.js showLevelSelect) can chain it before the user picks a new
+ * level — the next `startLevel` snapshot must see a clean scene.
+ *
+ * Frees every geometry + material the active level added to the scene
+ * and clears the dispatcher tracking. No-op if no level is active
+ * (first time the player reaches the menu).
+ *
+ * Emits `zarra:level-exit` so HUD/scoring modules can clear
+ * level-local UI (combo timer, score popup, etc.) without importing
+ * the dispatcher or state.
+ */
+export function exitToMenu() {
+  if (!_currentLevelMod) return;
+
+  for (const obj of _levelObjects) {
+    scene.remove(obj);
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      const ms = Array.isArray(obj.material) ? obj.material : [obj.material];
+      ms.forEach((m) => m.dispose());
+    }
+  }
+  _levelObjects = [];
+  _currentLevelMod = null;
+  _currentLevelN = 0;
+
+  emit("zarra:level-exit");
+}

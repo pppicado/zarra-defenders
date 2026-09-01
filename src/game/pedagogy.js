@@ -137,12 +137,39 @@ export function showDatoOverlay() {
 // ---- Wire the dispatcher listener ------------------------------------
 //
 // We listen via the dispatcher bus so this module stays decoupled.
-// Init is idempotent.
+// Init is idempotent — calling wirePedagogy() twice is a no-op.
+//
+// Two events are wired here:
+//
+//   - `zarra:dato-overlay`  -> the DATO power-up fires. Show a brief
+//                               inline dato for ~4 s.
+//
+//   - `zarra:desactivacion` -> a boss reached 0 HP (A7). If the
+//                               deactivated boss is the level-5 boss
+//                               (`planta_treco`), hand off to the final
+//                               screen. Bosses in levels 1-4 do NOT
+//                               show the final screen — the FSM in
+//                               waves.js advances to level-complete
+//                               for those.
 let wired = false;
 export function wirePedagogy() {
   if (wired) return;
   wired = true;
   import("./dispatcher.js").then((d) => {
     d.on("zarra:dato-overlay", showDatoOverlay);
+    d.on("zarra:desactivacion", showFinalIfLevel5Boss);
   });
+}
+
+/**
+ * Listener for `zarra:desactivacion`. The payload is the desaturated
+ * bossGroup. We check `userData.bossId` (set by the enemy factory) and
+ * only hand off to the final screen for the level-5 boss.
+ */
+function showFinalIfLevel5Boss(bossGroup) {
+  if (!bossGroup) return;
+  const id = bossGroup.userData && bossGroup.userData.bossId;
+  if (id === "planta_treco") {
+    showFinalScreen();
+  }
 }

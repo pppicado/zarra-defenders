@@ -115,6 +115,9 @@ function showLevelSelect() {
    "data-screen", "final-screen", "credits-screen"].forEach((id) => {
     setOverlayVisible(id, false);
   });
+  // Tear down the active level's scene objects before showing the menu.
+  // Synchronous so the next `startLevel` snapshots a clean scene.
+  import("./game/dispatcher.js").then((d) => d.exitToMenu());
   import("./game/state.js").then((s) => {
     const el = document.getElementById("menu-session-score");
     if (el) el.textContent = String(s.state.score);
@@ -146,3 +149,11 @@ if (creditsVolver) creditsVolver.addEventListener("click", () => {
 
 setOverlayVisible("start-screen", true);
 setOverlayVisible("level-select", false);
+
+// ---- Wire pedagogy listeners once at startup --------------------------
+//
+// `wirePedagogy()` is idempotent and lazy-loads the dispatcher. It
+// binds the DATO power-up overlay AND the level-5 boss desactivacion
+// -> final screen handoff. Must be called after the start screen is
+// mounted so the overlay elements exist by the time the listener fires.
+import("./game/pedagogy.js").then((p) => p.wirePedagogy());
