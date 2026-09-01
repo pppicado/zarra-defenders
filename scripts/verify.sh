@@ -101,13 +101,17 @@ echo
 
 # --------------------------------------------------------------------- 4
 echo "$(bold "4. Asset budget")"
-TOTAL_BYTES=$(du -sb "$PROJECT_ROOT" 2>/dev/null | awk '{print $1}')
-TOTAL_HUMAN=$(du -sh "$PROJECT_ROOT" 2>/dev/null | awk '{print $1}')
-echo "    Project size: $TOTAL_HUMAN ($TOTAL_BYTES bytes)"
+# The 2 MB cap is OPERATIONAL: it's the size of what GitHub Pages will
+# serve. Local-only metadata (.git/, .atl/, .engram/, .playwright-mcp/)
+# never ships to the user, so we exclude it. Track only deployable
+# content: source, assets, index.html, scripts.
+TOTAL_BYTES=$(du -sb --exclude=.git --exclude=.atl --exclude=.engram --exclude=.playwright-mcp "$PROJECT_ROOT" 2>/dev/null | awk '{print $1}')
+TOTAL_HUMAN=$(du -sh --exclude=.git --exclude=.atl --exclude=.engram --exclude=.playwright-mcp "$PROJECT_ROOT" 2>/dev/null | awk '{print $1}')
+echo "    Project size (deployable): $TOTAL_HUMAN ($TOTAL_BYTES bytes)"
 if (( TOTAL_BYTES <= 2097152 )); then
-  emit_pass "Project <= 2 MB"
+  emit_pass "Deployable project <= 2 MB"
 else
-  emit_fail "Project > 2 MB"
+  emit_fail "Deployable project > 2 MB"
 fi
 echo
 
