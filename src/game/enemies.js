@@ -99,40 +99,101 @@ export function clearEnemies() {
   bossActive = false;
 }
 
-// ---- Hit-test (raycast) ----------------------------------------------
+// ---- Hit-test (sphere-distance, raycast-free) -------------------------
+//
+// The original implementation used a mesh raycast (THREE.Raycaster) on
+// every enemy. That broke down once enemies started to wobble
+// laterally — the player aims at the crosshair (center of screen),
+// the enemy wobbles off-axis, and the ray misses the mesh by a few
+// units even though the enemy is clearly "in the player's face".
+//
+// The replacement uses bounding-sphere distance from each enemy's
+// world-position center to the ray. If the closest enemy is within
+// its sphere radius × 1.25 (a generous forgiveness multiplier), the
+// hit lands. Same UX (point at the enemy and shoot), way more
+// forgiving for the on-rails genre.
+//
+// Performance: linear scan over `enemies.list` (max MECANICA.enemyCap =
+// 5). The Box3/Sphere computation is cached per-enemy on spawn so we
+// only do it once per lifetime, not per shot.
 
-const raycaster = new THREE.Raycaster();
-const screenNDC = new THREE.Vector2(0, 0);     // we always fire at the center of the screen
+const _tmpSphere = new THREE.Sphere();
+const _tmpBox = new THREE.Box3();
+const _tmpCenter = new THREE.Vector3();
+
+function computeHitSphere(enemyGroup) {
+  // Cache the bounding sphere on the group's userData so we only
+  // compute it once per enemy.
+  if (!enemyGroup.userData._hitSphere) {
+    _tmpBox.setFromObject(enemyGroup);
+    _tmpBox.getBoundingSphere(_tmpSphere);
+    // Translate the sphere into world space by adding the enemy's
+    // world position to the local center.
+    enemyGroup.getWorldPosition(_tmpCenter);
+    _tmpSphere.center.copy(_tmpCenter);
+    _tmpSphere.radius *= 1.25;   // forgiveness for off-axis wobble
+    enemyGroup.userData._hitSphere = {
+      cx: _tmpSphere.center.x,
+      cy: _tmpSphere.center.y,
+      cz: _tmpSphere.center.z,
+      r: _tmpSphere.radius,
+    };
+  }
+  return enemyGroup.userData._hitSphere;
+}
+
+/**
+ * Squared distance from a point P to a ray (origin + t*direction for t >= 0).
+ * Avoids sqrt for the hot path.
+ */
+function pointToRayDistSq(px, py, pz, ox, oy, oz, dx, dy, dz) {
+  // Vector from origin to point.
+  const vx = px - ox, vy = py - oy, vz = pz - oz;
+  // Project onto the ray direction.
+  const t = vx * dx + vy * dy + vz * dz;
+  if (t < 0) return Infinity;            // behind the camera
+  // Closest point on the ray.
+  const cx = ox + dx * t, cy = oy + dy * t, cz = oz + dz * t;
+  // Distance squared.
+  const ex = px - cx, ey = py - cy, ez = pz - cz;
+  return ex * ex + ey * ey + ez * ez;
+}
 
 /**
  * Try to hit an enemy with a shot. The shot originates at the camera
- * position and points along `forward`. The hit is reported as the first
- * intersected enemy in `enemies.list`.
+ * position and points along `forward`. The hit is reported as the
+ * closest enemy whose bounding sphere is within the ray.
  *
  * Returns `{hit: bool, enemy: ?, enemyId: ?}`.
  */
 export function tryHit(forward) {
-  raycaster.set(camera.position, forward);
-  raycaster.far = 100;
+  const ox = camera.position.x, oy = camera.position.y, oz = camera.position.z;
+  const dx = forward.x, dy = forward.y, dz = forward.z;
 
-  const hits = raycaster.intersectObjects(enemies.list, true);
-  if (hits.length === 0) {
+  let bestEnemy = null;
+  let bestDistSq = Infinity;
+
+  for (const enemyGroup of enemies.list) {
+    if (enemyGroup.userData.lifecycleHalt) continue;
+    const sphere = computeHitSphere(enemyGroup);
+    const distSq = pointToRayDistSq(
+      sphere.cx, sphere.cy, sphere.cz,
+      ox, oy, oz, dx, dy, dz
+    );
+    const r = sphere.r;
+    if (distSq < r * r && distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestEnemy = enemyGroup;
+    }
+  }
+
+  if (!bestEnemy) {
     scoring.registerMiss();
     return { hit: false };
   }
 
-  // Walk up the parent chain to find the group registered in `enemies.list`.
-  let obj = hits[0].object;
-  while (obj && enemies.list.indexOf(obj) === -1) {
-    obj = obj.parent;
-  }
-  if (!obj) {
-    scoring.registerMiss();
-    return { hit: false };
-  }
-
-  applyHit(obj);
-  return { hit: true, enemy: obj, enemyId: obj.userData.puntosKey };
+  applyHit(bestEnemy);
+  return { hit: true, enemy: bestEnemy, enemyId: bestEnemy.userData.puntosKey };
 }
 
 function applyHit(enemyGroup) {
@@ -283,11 +344,13 @@ const PASS_THRESHOLD_Z = 2;
 
 // Per-enemy phase offset for lateral wobble — assigned at spawn time so
 // each enemy bobs independently and the wave looks organic, not a
-// straight conveyor belt of identical trajectories.
+// straight conveyor belt of identical trajectories. Amplitude is
+// deliberately small (0.2-0.5 units) so the enemy stays within the
+// crosshair's effective hit zone while still adding visual variety.
 function assignWobble(group) {
   if (typeof group.userData.wobblePhase !== "number") {
     group.userData.wobblePhase = Math.random() * Math.PI * 2;
-    group.userData.wobbleAmp = 0.6 + Math.random() * 1.4;   // 0.6 - 2.0 units
+    group.userData.wobbleAmp = 0.2 + Math.random() * 0.3;   // 0.2 - 0.5 units
     group.userData.baseX = group.position.x;
   }
 }
