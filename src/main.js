@@ -157,3 +157,10 @@ setOverlayVisible("level-select", false);
 // -> final screen handoff. Must be called after the start screen is
 // mounted so the overlay elements exist by the time the listener fires.
 import("./game/pedagogy.js").then((p) => p.wirePedagogy());
+
+// ---- Wire per-frame game-module updates -------------------------------
+//
+// `wireGameUpdates()` registers every game module's `update(dt)` with
+// the dispatcher so the engine loop actually ticks them each frame.
+// Without this, the scene renders but nothing inside it moves.
+import("./game/wire-updates.js").then((w) => w.wireGameUpdates());
