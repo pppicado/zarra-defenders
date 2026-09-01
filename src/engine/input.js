@@ -4,6 +4,14 @@
 // is the SOLE caller of `requestPointerLock` / `exitPointerLock`. Every
 // other module observes lock-state via the `onLockChange` callback.
 //
+// Mobile input (no Pointer Lock API available):
+//   The Pointer Lock API is desktop-only. On touch devices we run a
+//   parallel mode: every `pointerdown` fires immediately (no lock
+//   required) and the tap location drives the shot direction. main.js
+//   uses `isMobileInput()` to choose between mouse-look aim and a
+//   raycaster built from the tap point (per the user's
+//   "tap-to-shoot at the tap position" choice).
+//
 // Critical contracts (architectural decisions A3 + A4):
 //
 //   A3 - First-click atomic gesture (hit-feedback spec §First-Click Atomic
@@ -31,6 +39,19 @@ let lockActive = false;
 
 export function isLockActive() {
   return lockActive;
+}
+
+/**
+ * True when the runtime is a touch / coarse-pointer device. Used to
+ * branch between pointer-lock mode (desktop) and tap-to-shoot mode
+ * (mobile). Detection is intentionally cheap: a single `matchMedia`
+ * plus a feature check, both safe to call from anywhere.
+ */
+export function isMobileInput() {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia?.("(pointer: coarse)").matches) return true;
+  if ("ontouchstart" in window) return true;
+  return false;
 }
 
 const lockChangeCallbacks = [];
@@ -140,10 +161,30 @@ export function onMute(fn) { muteCallbacks.push(fn); }
 // `preventDefault()` on `touchstart`, which broke mobile play. The
 // Pointer Events API is the unified, cross-input surface.
 document.addEventListener("pointerdown", (ev) => {
-  if (!lockActive) return;
+  // Ignore taps that land on a visible overlay (start screen, level
+  // select, pause, gameover, data screen, final, credits). Without
+  // this guard the fire callback runs when the user taps a menu
+  // button — wasteful and confusing on mobile.
+  if (ev.target && typeof ev.target.closest === "function") {
+    if (ev.target.closest('.overlay[data-state="visible"]')) return;
+  }
+  // Desktop mode requires pointer lock (Pointer Lock API contract).
+  // Mobile mode has no pointer lock — every touch fires immediately
+  // and the tap location drives the shot direction. Branch on
+  // `isMobileInput()` so a desktop user who happens to have a touch
+  // screen can still fall back to mobile behavior if lock fails.
+  const mobile = isMobileInput();
+  if (!mobile && !lockActive) return;
   // Buttons: 0 = primary (mouse left button / touch / pen tip).
   if (ev.button !== 0) return;
-  for (const fn of fireCallbacks) fn(ev);
+  // Pass pointer info so main.js can build a raycaster from the tap
+  // on mobile. Desktop callers ignore pointerX/Y because aim is
+  // driven by accumulated mouse-look deltas.
+  for (const fn of fireCallbacks) fn({
+    pointerX: ev.clientX,
+    pointerY: ev.clientY,
+    isMobile: mobile,
+  });
 });
 
 document.addEventListener("keydown", (ev) => {

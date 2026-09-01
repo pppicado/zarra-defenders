@@ -41,8 +41,16 @@ function showStartError(msg) {
 }
 
 input.onStartGesture(() => {
-  // Step 1 — request pointer lock. (A3)
-  const lockResult = input.requestLock();
+  // Step 1 — request pointer lock on desktop only. (A3)
+  // Pointer Lock API is desktop-only; calling it on mobile either
+  // throws or silently no-ops, and either way the player sees a
+  // misleading "no se pudo bloquear el puntero" error. On mobile we
+  // skip the lock and run in tap-to-shoot mode (see onFire below).
+  const mobile = input.isMobileInput();
+  let lockResult = { ok: true };
+  if (!mobile) {
+    lockResult = input.requestLock();
+  }
   // Step 2 — resume the audio context. (A3)
   const audioPromise = audio.resumeAudio();
 
@@ -76,19 +84,37 @@ input.onStartGesture(() => {
 // THREE is loaded as a UMD global from index.html (r128), so it's
 // available here without an import.
 
-input.onFire(() => {
+input.onFire((ev) => {
   if (!ammo.tryFire()) return;
-  const aim = input.aim;
-  const cp = Math.cos(aim.pitch);
-  const sp = Math.sin(aim.pitch);
-  const cy = Math.cos(aim.yaw);
-  const sy = Math.sin(aim.yaw);
-  // Three.js camera default forward is -Z. Yaw around Y, pitch around X.
-  // World-space forward:
-  //   x = -sin(yaw) * cos(pitch)
-  //   y =  sin(pitch)
-  //   z = -cos(yaw) * cos(pitch)
-  const forward = new THREE.Vector3(-sy * cp, sp, -cy * cp);
+
+  let forward;
+  if (ev && ev.isMobile) {
+    // Tap-to-shoot: build a raycaster from the camera through the tap
+    // point on the canvas. This lets mobile players hit enemies
+    // anywhere on screen instead of being stuck at dead-center.
+    const canvas = document.getElementById("game");
+    const rect = canvas.getBoundingClientRect();
+    const ndcX =  ((ev.pointerX - rect.left) / rect.width)  * 2 - 1;
+    const ndcY = -((ev.pointerY - rect.top)  / rect.height) * 2 + 1;
+    const ndc = new THREE.Vector2(ndcX, ndcY);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(ndc, camera);
+    forward = raycaster.ray.direction;
+  } else {
+    // Desktop: use the aim yaw/pitch from mouse-look (input.js
+    // maintains yaw/pitch from mousemove deltas). Three.js camera
+    // default forward is -Z. Yaw around Y, pitch around X.
+    //   x = -sin(yaw) * cos(pitch)
+    //   y =  sin(pitch)
+    //   z = -cos(yaw) * cos(pitch)
+    const aim = input.aim;
+    const cp = Math.cos(aim.pitch);
+    const sp = Math.sin(aim.pitch);
+    const cy = Math.cos(aim.yaw);
+    const sy = Math.sin(aim.yaw);
+    forward = new THREE.Vector3(-sy * cp, sp, -cy * cp);
+  }
+
   enemies.tryHit(forward);
 });
 
