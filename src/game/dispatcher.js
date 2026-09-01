@@ -96,3 +96,94 @@ import("../engine/loop.js").then((loop) => {
     }
   });
 });
+
+// ---- Level start / restart coordinator --------------------------------
+//
+// `startLevel(n, levelMod)` is the orchestrator invoked by
+// `levels/registry.js` when the player clicks a level. It performs the
+// data-screen spec sequence:
+//
+//   1. Show the pre-level dato screen (waits for the player to click
+//      "Continuar").
+//   2. Reset level-local state (lives, combo, timers).
+//   3. Run `levelMod.start()` to decorate the scene + configure waves.
+//   4. Track the objects the level added to the scene so `restartLevel`
+//      can clean them up on retry.
+//   5. Emit `zarra:level-start` so HUD, scoring, pedagogy, etc. can
+//      react without importing this module.
+//
+// `restartLevel()` re-runs the same sequence for the currently active
+// level (used by Pause > Reiniciar and Game Over > Reintentar).
+//
+// Why snapshot `scene.children.length`: each level module adds models
+// to the global scene via `scene.add(...)` from inside `decorateScene()`.
+// Asking each level to return the list of objects it added would be a
+// 5-file change; the snapshot trick is local to the dispatcher and
+// keeps the level modules untouched.
+//
+// Why the pedagogy import is dynamic: pedagogy.js statically imports
+// `engine/dom`, `engine/audio`, `content/data` only, but it dynamically
+// imports THIS module to wire `zarra:dato-overlay`. Symmetric dynamic
+// import here keeps the load graph acyclic.
+
+import { startLevel as stateStartLevel, resetLevelLocal } from "./state.js";
+import { scene } from "../engine/scene.js";
+
+let _currentLevelMod = null;
+let _currentLevelN = 0;
+let _levelObjects = [];   // scene children added by the active level
+
+/**
+ * Start level `n` (1..5). Resolves after the dato screen closes and
+ * the level scene has been decorated.
+ */
+export async function startLevel(n, levelMod) {
+  _currentLevelN = n;
+  _currentLevelMod = levelMod;
+
+  // 1. Pre-level dato screen (resolves on "Continuar" click).
+  const pedagogy = await import("./pedagogy.js");
+  await pedagogy.showDatoScreen(n);
+
+  // 2. Reset state + decorate scene + configure waves.
+  stateStartLevel(n);
+  const before = scene.children.length;
+  levelMod.start();
+  _levelObjects = scene.children.slice(before);
+
+  emit("zarra:level-start", { n });
+}
+
+/**
+ * Restart the currently active level. Removes the objects the previous
+ * attempt added to the scene, re-shows the dato screen, and re-runs
+ * `levelMod.start()`. No-op if no level is currently active.
+ */
+export async function restartLevel() {
+  if (!_currentLevelMod) {
+    getZarra().warn("dispatcher: restartLevel called before startLevel");
+    return;
+  }
+
+  // Tear down the previously-added level objects before re-decorating.
+  for (const obj of _levelObjects) {
+    scene.remove(obj);
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      const ms = Array.isArray(obj.material) ? obj.material : [obj.material];
+      ms.forEach((m) => m.dispose());
+    }
+  }
+  _levelObjects = [];
+
+  // Pre-level dato screen (same flow as a fresh start).
+  const pedagogy = await import("./pedagogy.js");
+  await pedagogy.showDatoScreen(_currentLevelN);
+
+  resetLevelLocal();
+  const before = scene.children.length;
+  _currentLevelMod.start();
+  _levelObjects = scene.children.slice(before);
+
+  emit("zarra:level-restart", { n: _currentLevelN });
+}
