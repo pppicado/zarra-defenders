@@ -8,5 +8,6 @@ desktop.ini
 *~
 .engram/
 .atl/
+.playwright-mcp/
 *.log
 __pycache__/
